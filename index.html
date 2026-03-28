@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>CropSense</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--soil:#3d2b1f;--moss:#4a7c59;--leaf:#78b860;--mist:#f0f7ee;--gold:#e8a838;--cream:#fdf8f0;--dark:#1a1a1a;--mid:#555;--light:#aaa;--border:#e0ead8;--ex:#2d7d46;--gd:#5a9e6f;--md:#c07a2e;--sh:0 4px 24px rgba(60,80,40,.10);--shl:0 12px 48px rgba(60,80,40,.16)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--dark);min-height:100vh;overflow-x:hidden}
+
+/* HEADER */
+header{background:linear-gradient(135deg,var(--soil) 0%,#2e4a24 60%,var(--moss) 100%);position:relative;overflow:hidden}
+.hpat{position:absolute;inset:0;background-image:radial-gradient(circle at 20% 50%,rgba(120,184,96,.15) 0%,transparent 50%),radial-gradient(circle at 80% 20%,rgba(232,168,56,.10) 0%,transparent 40%);pointer-events:none}
+.hinner{position:relative;max-width:1100px;margin:0 auto;padding:52px 32px 48px;display:flex;align-items:center;gap:32px}
+.logo{width:72px;height:72px;background:var(--leaf);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:36px;flex-shrink:0;box-shadow:0 4px 20px rgba(0,0,0,.25)}
+.htxt h1{font-family:'Playfair Display',serif;font-size:clamp(28px,4vw,46px);font-weight:900;color:#fff;line-height:1.1}
+.htxt h1 span{color:var(--gold)}
+.htxt p{margin-top:10px;color:rgba(255,255,255,.70);font-size:15px;max-width:520px;line-height:1.6}
+.csv-btn{position:absolute;top:18px;right:24px;display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.28);border-radius:10px;padding:9px 16px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:rgba(255,255,255,.90);cursor:pointer;transition:all .2s;backdrop-filter:blur(6px)}
+.csv-btn:hover{background:rgba(255,255,255,.22)}
+.csv-btn input{display:none}
+
+/* TOAST */
+.toast{display:none;position:fixed;top:20px;right:20px;background:var(--dark);color:#fff;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:500;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.25);align-items:center;gap:10px}
+.toast.on{display:flex}
+
+/* MAIN */
+main{max-width:1100px;margin:0 auto;padding:40px 24px 80px}
+
+/* API BAR */
+.apibar{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#f5f9f0;border:1px solid var(--border);border-radius:10px;margin-bottom:24px;flex-wrap:wrap}
+.apibar label{font-size:13px;font-weight:600;color:var(--mid);white-space:nowrap}
+.apibar input{flex:1;min-width:200px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none}
+.apibar input:focus{border-color:var(--leaf)}
+#apistatus{font-size:12px;color:var(--light)}
+
+/* TABS */
+.tabs{display:flex;gap:4px;background:#e8ede2;border-radius:14px;padding:4px;margin-bottom:32px;width:fit-content}
+.tab{background:none;border:none;padding:10px 22px;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;color:var(--mid);cursor:pointer;transition:all .2s}
+.tab.on{background:#fff;color:var(--moss);box-shadow:0 2px 8px rgba(0,0,0,.08);font-weight:600}
+.panel{display:none}
+.panel.on{display:block;animation:fi .3s ease}
+@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* CARD */
+.card{background:#fff;border:1px solid var(--border);border-radius:20px;padding:32px;box-shadow:var(--sh);margin-bottom:24px}
+.ctitle{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;margin-bottom:8px}
+.csub{color:var(--mid);font-size:13.5px;margin-bottom:24px;line-height:1.5}
+
+/* DATASET HERO */
+.dhero{display:flex;align-items:center;gap:20px;padding:24px;background:linear-gradient(135deg,#f0f8eb,#e8f4e0);border:1.5px solid #c3d9b0;border-radius:16px;margin-bottom:24px}
+.dicon{font-size:44px;flex-shrink:0}
+.dinfo h3{font-size:16px;font-weight:700;margin-bottom:4px}
+.dinfo p{font-size:13px;color:var(--mid);line-height:1.55}
+.dbadge{display:inline-flex;align-items:center;gap:6px;background:var(--moss);color:#fff;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;margin-top:8px;text-transform:uppercase;letter-spacing:.06em}
+
+/* FORM */
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:18px}
+.fg label{display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--mid);margin-bottom:7px}
+.fg input,.fg select{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;background:#fff;color:var(--dark);outline:none;transition:border .2s}
+.fg input:focus,.fg select:focus{border-color:var(--leaf);box-shadow:0 0 0 3px rgba(120,184,96,.15)}
+.fg .hint{font-size:11px;color:var(--light);margin-top:4px}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:13px 28px;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;border:none;transition:all .2s}
+.btn-p{background:var(--moss);color:#fff}
+.btn-p:hover{background:#3d6a49;transform:translateY(-1px);box-shadow:0 6px 20px rgba(74,124,89,.30)}
+.btn-s{background:#fff;color:var(--moss);border:1.5px solid var(--leaf)}
+.btn-s:hover{background:var(--mist)}
+.brow{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
+
+/* LOADING */
+.ld{display:none;align-items:center;gap:14px;padding:20px 24px;background:var(--mist);border-radius:12px;margin-top:24px;border:1px solid var(--border)}
+.ld.on{display:flex}
+.spin{width:28px;height:28px;border:3px solid #d1e8c0;border-top-color:var(--moss);border-radius:50%;animation:sp .75s linear infinite;flex-shrink:0}
+@keyframes sp{to{transform:rotate(360deg)}}
+.ldtxt{font-size:14px;color:var(--mid)}
+
+/* BANNERS */
+.bn{display:none;padding:14px 18px;border-radius:10px;font-size:14px;margin-top:20px;align-items:flex-start;gap:10px}
+.bn.on{display:flex}
+.bnerr{background:#fef0f0;border:1px solid #f5c2c2;color:#a33}
+.bnok{background:#f0f8eb;border:1px solid #b7d8a0;color:var(--moss)}
+
+/* RESULTS */
+#results{display:none}
+#results.on{display:block}
+.divider{height:1px;background:var(--border);margin:32px 0}
+.rhead{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px}
+.rhead h2{font-family:'Playfair Display',serif;font-size:26px;font-weight:700}
+.rmeta{font-size:13px;color:var(--mid);background:#f0f4ea;padding:6px 14px;border-radius:20px}
+.pnav{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:28px}
+.pbtn{padding:7px 16px;border-radius:10px;border:1.5px solid var(--border);background:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:all .18s;color:var(--mid)}
+.pbtn:hover:not(:disabled){border-color:var(--leaf);color:var(--moss)}
+.pbtn:disabled{opacity:.4;cursor:not-allowed}
+.pinfo{font-size:13px;color:var(--mid)}
+.pjump{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--mid)}
+.pjump input{width:56px;padding:6px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;text-align:center;outline:none}
+
+/* RECORD CARD */
+.rcard{background:#fff;border:1.5px solid var(--border);border-radius:20px;padding:28px;box-shadow:var(--sh);margin-bottom:20px;transition:box-shadow .2s}
+.rcard:hover{box-shadow:var(--shl)}
+.rchead{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+.rctitle{display:flex;align-items:center;gap:12px}
+.bige{font-size:40px}
+.rcname{font-family:'Playfair Display',serif;font-size:22px;font-weight:700}
+.rcsoil{font-size:13px;color:var(--mid);margin-top:2px}
+.rbadge{display:inline-block;padding:4px 12px;border-radius:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.rbadge.ex{background:#d4f0de;color:var(--ex)}
+.rbadge.gd{background:#dff0e4;color:var(--gd)}
+.rbadge.md{background:#fce9d2;color:var(--md)}
+.srow{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.slbl{font-size:12px;font-weight:600;color:var(--mid);white-space:nowrap}
+.sbarw{flex:1;height:8px;background:#eee;border-radius:4px;overflow:hidden}
+.sbar{height:100%;border-radius:4px;width:0%;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.sbar.ex{background:var(--ex)}.sbar.gd{background:var(--gd)}.sbar.md{background:var(--md)}
+.spct{font-size:14px;font-weight:700;white-space:nowrap}
+.spct.ex{color:var(--ex)}.spct.gd{color:var(--gd)}.spct.md{color:var(--md)}
+.rbody{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:640px){.rbody{grid-template-columns:1fr}}
+.iblock{background:var(--mist);border:1px solid var(--border);border-radius:14px;padding:18px}
+.ibtitle{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--light);margin-bottom:12px}
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.si .sl{font-size:11px;color:var(--light);text-transform:uppercase;letter-spacing:.05em}
+.si .sv{font-size:16px;font-weight:700;margin-top:2px}
+.fbox{background:linear-gradient(135deg,#fffbf0,#fff3d4);border:1.5px solid #f0d890;border-radius:14px;padding:18px}
+.fname{font-size:22px;font-weight:900;font-family:'Playfair Display',serif;color:#a07020;margin-bottom:6px}
+.fnut{font-size:12px;font-weight:600;color:#b08030;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em}
+.fuse{font-size:13px;color:var(--mid);line-height:1.55;margin-bottom:6px}
+.fnote{font-size:12px;color:var(--light);font-style:italic}
+
+/* CROP DB */
+.dbgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.dbi{background:var(--mist);border:1px solid var(--border);border-radius:12px;padding:16px}
+.dbih{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.dbie{font-size:24px}.dbin{font-weight:700;font-size:15px}
+.dbic{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--light);font-weight:600}
+
+@media(max-width:600px){
+  .hinner{flex-direction:column;gap:16px;padding:32px 20px 28px}
+  .card{padding:20px}.tabs{width:100%}
+  .tab{flex:1;text-align:center;padding:10px 6px;font-size:13px}
+  .csv-btn{top:10px;right:12px;padding:7px 12px;font-size:12px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hpat"></div>
+  <label class="csv-btn" title="Upload custom CSV">
+    📂 Upload CSV
+    <input type="file" id="csvfile" accept=".csv" onchange="onCsvUpload(event)">
+  </label>
+  <div class="hinner">
+    <div class="logo">🌱</div>
+    <div class="htxt">
+      <h1>Crop<span>Sense</span></h1>
+      <p>Analyses Temperature, Humidity, Moisture, Soil Type &amp; NPK values to recommend the best fertilizer for each crop record.</p>
+    </div>
+  </div>
+</header>
+
+<div class="toast" id="toast"><span>📄</span><span id="toastmsg"></span></div>
+
+<main>
+  <div class="apibar">
+    <label>🔗 API URL</label>
+    <input type="text" id="apiurl" value="http://localhost:5000">
+    <button class="btn btn-s" style="padding:8px 16px;font-size:13px" onclick="testConn()">Test Connection</button>
+    <span id="apistatus">Not connected</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on"  onclick="goTab('dataset',this)">📊 Dataset Analysis</button>
+    <button class="tab"     onclick="goTab('manual',this)">✏️ Manual Entry</button>
+    <button class="tab"     onclick="goTab('cropdb',this)">🗂 Crop Database</button>
+  </div>
+
+  <!-- DATASET TAB -->
+  <div id="panel-dataset" class="panel on">
+    <div class="card">
+      <div class="ctitle">Dataset Analysis</div>
+      <div class="csub">Runs predictions from <strong>soil_weather_data.csv</strong> on the server (first 50 rows). Use the <strong>Upload CSV</strong> button top-right for a custom file.</div>
+      <div class="dhero">
+        <div class="dicon">🗄️</div>
+        <div class="dinfo">
+          <h3 id="dsname">soil_weather_data.csv</h3>
+          <p id="dsdesc">Columns: Temparature, Humidity, Moisture, Soil Type, Crop Type, Nitrogen, Potassium, Phosphorous, Fertilizer Name</p>
+          <div class="dbadge"><span>●</span>&nbsp;<span id="dsbadge">Server dataset · first 50 records</span></div>
+        </div>
+      </div>
+      <div class="brow">
+        <button class="btn btn-p" onclick="runDataset()">🌿 Analyse Dataset</button>
+      </div>
+      <div class="ld" id="ld-dataset"><div class="spin"></div><div class="ldtxt">Loading…</div></div>
+      <div class="bn bnerr" id="err-dataset"><span>⚠️</span><span id="errmsg-dataset"></span></div>
+      <div class="bn bnok"  id="ok-dataset"><span>✅</span><span id="okmsg-dataset"></span></div>
+    </div>
+  </div>
+
+  <!-- MANUAL TAB -->
+  <div id="panel-manual" class="panel">
+    <div class="card">
+      <div class="ctitle">Manual Field Entry</div>
+      <div class="csub">Enter field conditions manually to get an instant recommendation.</div>
+      <div class="fgrid">
+        <div class="fg"><label>Temperature (°C)</label><input type="number" id="f-temp" min="10" max="50" step="0.5" placeholder="e.g. 28"><div class="hint">Dataset range: 20–40</div></div>
+        <div class="fg"><label>Humidity (%)</label><input type="number" id="f-humid" min="0" max="100" placeholder="e.g. 55"><div class="hint">Dataset range: 40–80</div></div>
+        <div class="fg"><label>Moisture (%)</label><input type="number" id="f-moist" min="0" max="100" placeholder="e.g. 40"><div class="hint">Soil moisture level</div></div>
+        <div class="fg"><label>Soil Type</label>
+          <select id="f-soil">
+            <option value="">— Select —</option>
+            <option>Sandy</option><option>Loamy</option><option>Black</option><option>Red</option><option>Clayey</option>
+          </select>
+        </div>
+        <div class="fg"><label>Crop Type</label>
+          <select id="f-crop">
+            <option value="">— Select —</option>
+            <option>Maize</option><option>Sugarcane</option><option>Cotton</option><option>Tobacco</option>
+            <option>Paddy</option><option>Barley</option><option>Wheat</option><option>Millets</option>
+            <option>Oil seeds</option><option>Ground Nuts</option><option>Pulses</option>
+          </select>
+        </div>
+        <div class="fg"><label>Nitrogen (N)</label><input type="number" id="f-n" min="0" max="100" placeholder="e.g. 30"><div class="hint">Range: 0–46</div></div>
+        <div class="fg"><label>Potassium (K)</label><input type="number" id="f-k" min="0" max="100" placeholder="e.g. 10"><div class="hint">Range: 0–23</div></div>
+        <div class="fg"><label>Phosphorous (P)</label><input type="number" id="f-p" min="0" max="100" placeholder="e.g. 20"><div class="hint">Range: 0–46</div></div>
+        <div class="fg"><label>Field ID (optional)</label><input type="text" id="f-id" placeholder="e.g. Field-A"></div>
+      </div>
+      <div class="brow">
+        <button class="btn btn-p" onclick="runManual()">🌿 Get Recommendation</button>
+        <button class="btn btn-s" onclick="fillDemo()">Fill Example</button>
+      </div>
+      <div class="ld" id="ld-manual"><div class="spin"></div><div class="ldtxt">Computing…</div></div>
+      <div class="bn bnerr" id="err-manual"><span>⚠️</span><span id="errmsg-manual"></span></div>
+    </div>
+  </div>
+
+  <!-- CROP DB TAB -->
+  <div id="panel-cropdb" class="panel">
+    <div class="card">
+      <div class="ctitle">Crop Reference</div>
+      <div class="csub">All crops recognised in your dataset.</div>
+      <div class="dbgrid" id="dbgrid"></div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results">
+    <div class="divider"></div>
+    <div class="rhead">
+      <h2>🌾 Results</h2>
+      <div class="rmeta" id="rmeta">—</div>
+    </div>
+    <div class="pnav" id="pnav" style="display:none">
+      <button class="pbtn" id="pbtnprev" onclick="goPage(-1)">← Prev</button>
+      <span class="pinfo" id="pinfo"></span>
+      <button class="pbtn" id="pbtnnext" onclick="goPage(1)">Next →</button>
+      <span class="pjump">Go to record <input type="number" id="pjumpinput" min="1" onchange="jumpTo(this.value)"></span>
+    </div>
+    <div id="rdisp"></div>
+  </div>
+</main>
+
+<script>
+// ── CROP DATA ──
+var CROPS = {
+  "Maize":{"e":"🌽","cat":"Cereal","d":"Versatile cereal, high nitrogen demand, warm climate."},
+  "Sugarcane":{"e":"🎋","cat":"Cash Crop","d":"Tropical crop needing high moisture and warm temps."},
+  "Cotton":{"e":"🌸","cat":"Cash Crop","d":"Fiber crop thriving in warm, dry to semi-arid conditions."},
+  "Tobacco":{"e":"🌿","cat":"Cash Crop","d":"Warm-season crop, sensitive to soil type and nutrients."},
+  "Paddy":{"e":"🌾","cat":"Cereal","d":"Staple rice crop, grows best in flooded clayey soils."},
+  "Barley":{"e":"🌾","cat":"Cereal","d":"Cool-season grain, tolerates dry sandy soils."},
+  "Wheat":{"e":"🌾","cat":"Cereal","d":"Cool-season staple grain, broad soil adaptability."},
+  "Millets":{"e":"🌱","cat":"Cereal","d":"Drought-tolerant grain for hot, dry conditions."},
+  "Oil seeds":{"e":"🌻","cat":"Oilseed","d":"Covers mustard, sunflower etc. Moderate nutrient needs."},
+  "Ground Nuts":{"e":"🥜","cat":"Legume","d":"Peanut crop fixing nitrogen, prefers sandy loam soils."},
+  "Pulses":{"e":"🫘","cat":"Legume","d":"Protein-rich legumes that improve soil nitrogen."}
+};
+
+// populate crop DB tab
+document.getElementById('dbgrid').innerHTML = Object.keys(CROPS).map(function(n){
+  var c = CROPS[n];
+  return '<div class="dbi"><div class="dbih"><span class="dbie">'+c.e+'</span><div><div class="dbin">'+n+'</div><div class="dbic">'+c.cat+'</div></div></div><div style="font-size:12px;color:var(--mid);line-height:1.5">'+c.d+'</div></div>';
+}).join('');
+
+// ── STATE ──
+var uploadedFile = null;
+var allResults = [];
+var curPage = 0;
+var PAGE = 5;
+
+function apiBase(){ return document.getElementById('apiurl').value.replace(/\/$/,''); }
+
+function goTab(name, btn) {
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('on')});
+  document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('on')});
+  document.getElementById('panel-'+name).classList.add('on');
+  btn.classList.add('on');
+}
+
+async function testConn() {
+  var s = document.getElementById('apistatus');
+  s.textContent = 'Testing…'; s.style.color = 'var(--light)';
+  try {
+    var r = await fetch(apiBase()+'/api/health');
+    var d = await r.json();
+    s.style.color = 'var(--ex)'; s.textContent = '✅ Connected';
+  } catch(e) {
+    s.style.color = '#c33'; s.textContent = '❌ Cannot reach server';
+  }
+}
+
+function onCsvUpload(e) {
+  var f = e.target.files[0];
+  if (!f) return;
+  uploadedFile = f;
+  document.getElementById('dsname').textContent = f.name;
+  document.getElementById('dsdesc').textContent = 'Custom file ('+Math.round(f.size/1024)+' KB). Click Analyse Dataset to run.';
+  document.getElementById('dsbadge').textContent = 'Uploaded file';
+  document.getElementById('dsname').closest('.dhero').querySelector('.dbadge').style.background = '#b87333';
+  showToast('📄 '+f.name+' loaded');
+  document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('on')});
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('on')});
+  document.getElementById('panel-dataset').classList.add('on');
+  document.querySelector('.tab').classList.add('on');
+}
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  document.getElementById('toastmsg').textContent = msg;
+  t.classList.add('on');
+  setTimeout(function(){ t.classList.remove('on'); }, 4000);
+}
+
+// ── API CALLS ──
+async function runDataset() {
+  setLoading('dataset', true); clearMsg('dataset');
+  try {
+    var resp;
+    if (uploadedFile) {
+      var fd = new FormData();
+      fd.append('file', uploadedFile);
+      resp = await fetch(apiBase()+'/api/predict', {method:'POST', body:fd});
+    } else {
+      resp = await fetch(apiBase()+'/api/predict/default');
+    }
+
+    if (!resp.ok) {
+      var txt = await resp.text();
+      throw new Error('Server error '+resp.status+': '+txt.slice(0,200));
+    }
+
+    var data = await resp.json();
+
+    if (!data.results || data.results.length === 0) {
+      throw new Error('No results in response. Make sure soil_weather_data.csv is next to app.py.');
+    }
+
+    showOk('dataset', 'Loaded '+data.results.length+' records successfully!');
+    renderResults(data.results);
+
+  } catch(e) {
+    showErr('dataset', e.message);
+  }
+  setLoading('dataset', false);
+}
+
+async function runManual() {
+  var soil = document.getElementById('f-soil').value;
+  var crop = document.getElementById('f-crop').value;
+  if (!soil) { showErr('manual','Please select a Soil Type.'); return; }
+  if (!crop) { showErr('manual','Please select a Crop Type.'); return; }
+
+  var payload = {
+    field_id:    document.getElementById('f-id').value || 'Manual',
+    temperature: parseFloat(document.getElementById('f-temp').value),
+    humidity:    parseFloat(document.getElementById('f-humid').value),
+    moisture:    parseFloat(document.getElementById('f-moist').value),
+    soil_type:   soil,
+    crop_type:   crop,
+    nitrogen:    parseFloat(document.getElementById('f-n').value),
+    potassium:   parseFloat(document.getElementById('f-k').value),
+    phosphorous: parseFloat(document.getElementById('f-p').value)
+  };
+
+  var nums = ['temperature','humidity','moisture','nitrogen','potassium','phosphorous'];
+  var bad = nums.filter(function(k){ return isNaN(payload[k]); });
+  if (bad.length) { showErr('manual','Please fill in: '+bad.join(', ')); return; }
+
+  setLoading('manual', true); clearMsg('manual');
+  try {
+    var resp = await fetch(apiBase()+'/api/predict/manual', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+
+    if (!resp.ok) {
+      var txt = await resp.text();
+      throw new Error('Server error '+resp.status+': '+txt.slice(0,200));
+    }
+
+    var data = await resp.json();
+
+    if (!data.results || data.results.length === 0) {
+      throw new Error('No results returned.');
+    }
+
+    renderResults(data.results);
+
+  } catch(e) {
+    showErr('manual', e.message);
+  }
+  setLoading('manual', false);
+}
+
+function fillDemo() {
+  document.getElementById('f-temp').value  = 28;
+  document.getElementById('f-humid').value = 55;
+  document.getElementById('f-moist').value = 40;
+  document.getElementById('f-soil').value  = 'Loamy';
+  document.getElementById('f-crop').value  = 'Wheat';
+  document.getElementById('f-n').value     = 35;
+  document.getElementById('f-k').value     = 5;
+  document.getElementById('f-p').value     = 10;
+  document.getElementById('f-id').value    = 'Demo Field';
+}
+
+// ── RENDER ──
+function renderResults(results) {
+  allResults = results;
+  curPage = 0;
+  document.getElementById('rmeta').textContent = results.length+' record'+(results.length!==1?'s':'');
+  var pnav = document.getElementById('pnav');
+  pnav.style.display = results.length > 1 ? 'flex' : 'none';
+  document.getElementById('pjumpinput').max = results.length;
+  document.getElementById('results').classList.add('on');
+  document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
+  drawPage();
+}
+
+function drawPage() {
+  var start = curPage * PAGE;
+  var slice = allResults.slice(start, start+PAGE);
+  var total = Math.ceil(allResults.length/PAGE);
+  document.getElementById('pinfo').textContent = 'Records '+(start+1)+'–'+Math.min(start+PAGE,allResults.length)+' of '+allResults.length;
+  document.getElementById('pbtnprev').disabled = curPage === 0;
+  document.getElementById('pbtnnext').disabled = curPage >= total-1;
+  document.getElementById('rdisp').innerHTML = slice.map(function(r){ return cardHTML(r); }).join('');
+  setTimeout(function(){
+    document.querySelectorAll('.sbar').forEach(function(b){ b.style.width = b.getAttribute('data-score')+'%'; });
+  }, 80);
+}
+
+function goPage(dir) {
+  var total = Math.ceil(allResults.length/PAGE);
+  curPage = Math.max(0, Math.min(total-1, curPage+dir));
+  drawPage();
+  document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function jumpTo(v) {
+  var idx = parseInt(v)-1;
+  if (isNaN(idx)) return;
+  curPage = Math.floor(Math.max(0, Math.min(allResults.length-1, idx))/PAGE);
+  drawPage();
+}
+
+function cardHTML(r) {
+  var ci = r.crop_info, si = r.soil_info, inp = r.input, fi = r.recommended_fertilizer;
+  var cls = ci.rating.toLowerCase().slice(0,2); // 'ex','go','mo'
+  // map to CSS class names
+  var clsmap = {'ex':'ex','go':'gd','mo':'md'};
+  var cc = clsmap[cls] || 'gd';
+  return '<div class="rcard">'+
+    '<div class="rchead">'+
+      '<div class="rctitle">'+
+        '<div class="bige">'+ci.emoji+'</div>'+
+        '<div><div class="rcname">'+ci.name+'</div><div class="rcsoil">🪨 '+si.type+' soil &nbsp;·&nbsp; '+r.row_id+'</div></div>'+
+      '</div>'+
+      '<span class="rbadge '+cc+'">'+ci.rating+'</span>'+
+    '</div>'+
+    '<div class="srow">'+
+      '<span class="slbl">Suitability</span>'+
+      '<div class="sbarw"><div class="sbar '+cc+'" style="width:0%" data-score="'+ci.score+'"></div></div>'+
+      '<span class="spct '+cc+'">'+ci.score+'%</span>'+
+    '</div>'+
+    '<div class="rbody">'+
+      '<div class="iblock">'+
+        '<div class="ibtitle">Field Conditions</div>'+
+        '<div class="sgrid">'+
+          '<div class="si"><div class="sl">Temperature</div><div class="sv">'+inp.temperature+'°C</div></div>'+
+          '<div class="si"><div class="sl">Humidity</div><div class="sv">'+inp.humidity+'%</div></div>'+
+          '<div class="si"><div class="sl">Moisture</div><div class="sv">'+inp.moisture+'%</div></div>'+
+          '<div class="si"><div class="sl">Nitrogen</div><div class="sv">'+inp.nitrogen+'</div></div>'+
+          '<div class="si"><div class="sl">Potassium</div><div class="sv">'+inp.potassium+'</div></div>'+
+          '<div class="si"><div class="sl">Phosphorous</div><div class="sv">'+inp.phosphorous+'</div></div>'+
+        '</div>'+
+        '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:12.5px;color:var(--mid);line-height:1.55"><strong>Soil:</strong> '+si.description+'</div>'+
+      '</div>'+
+      '<div class="fbox">'+
+        '<div class="ibtitle" style="color:#b08030">Recommended Fertilizer</div>'+
+        '<div class="fname">'+fi.name+'</div>'+
+        '<div class="fnut">'+fi.nutrient+'</div>'+
+        '<div class="fuse">'+fi.use+'</div>'+
+        '<div class="fnote">'+fi.note+'</div>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+}
+
+// ── HELPERS ──
+function setLoading(id, on) { document.getElementById('ld-'+id).classList.toggle('on',on); }
+function showErr(id, msg)    { document.getElementById('errmsg-'+id).textContent = msg; document.getElementById('err-'+id).classList.add('on'); }
+function clearMsg(id)        { document.getElementById('err-'+id).classList.remove('on'); if(document.getElementById('ok-'+id)) document.getElementById('ok-'+id).classList.remove('on'); }
+function showOk(id, msg)     { document.getElementById('okmsg-'+id).textContent = msg; document.getElementById('ok-'+id).classList.add('on'); }
+
+// auto test on load
+window.addEventListener('load', function(){ setTimeout(testConn, 600); });
+</script>
+</body>
+</html>
